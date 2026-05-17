@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Octopus  Login</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+/* 🔥 3D Animated Background */
+body {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: radial-gradient(circle at center, #880202, #020513e3);
+  perspective: 1000px;
+}
+
+/* floating particles */
+.particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.particles span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: rgba(255,0,0,0.6);
+  border-radius: 50%;
+  animation: float 10s linear infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(100vh) translateX(0) scale(0); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(-10vh) translateX(50px) scale(1.2); opacity: 0; }
+}
+
+/* Loader */
+#loader {
+  position: fixed;
+  width: 100%;
+  height: 100vh;
+  background: radial-gradient(circle at center, #410404, #060227e3);
+  perspective: 1000px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  color: white;
+}
+
+.spinner {
+  width: 70px;
+  height: 70px;
+  border: 5px solid #222;
+  border-top: 5px solid red;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* 3D Login Card */
+.container {
+  display: none;
+  z-index: 2;
+}
+
+.login-box {
+  width: 380px;
+  padding: 30px;
+  border-radius: 20px;
+
+  /* glass + 3D */
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.2);
+
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.7),
+    inset 0 0 20px rgba(90, 38, 7, 0.712);
+
+  transform: rotateX(10deg) rotateY(-10deg);
+  transition: 0.5s;
+}
+
+.login-box:hover {
+  transform: rotateX(0deg) rotateY(0deg) scale(1.05);
+}
+
+h2 {
+  text-align: center;
+  color: white;
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+}
+
+/* Inputs */
+.input-group {
+  margin-bottom: 15px;
+}
+
+label {
+  color: #ddd;
+  font-size: 13px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  margin-top: 5px;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+input:focus {
+  box-shadow: 0 0 10px red;
+}
+
+/* Button */
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  background:  radial-gradient(circle at center, #410404, #060227e3);
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: rgb(4, 8, 34);
+  transform: scale(1.05);
+}
+
+.error {
+  color: red;
+  font-size: 13px;
+  text-align: center;
+  margin-top: 10px;
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<!-- particles -->
+<div class="particles" id="particles"></div>
+
+<!-- loader -->
+<div id="loader">
+  <div class="spinner"></div>
+  <p style="margin-top:15px;">Loading octopus...</p>
+</div>
+
+<!-- login -->
+<div class="container">
+  <div class="login-box">
+    <h2>OCTOPUS</h2>
+
+    <form id="loginForm">
+      <div class="input-group">
+        <label>Email</label>
+        <input
+  type="email"
+  id="email"
+  autocomplete="email"
+  required
+>
+      </div>
+
+      <div class="input-group">
+  <label>Password</label>
+
+  <div style="position: relative;">
+
+  <input
+  type="password"
+  id="password"
+  autocomplete="new-password"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
+  required
+  style="padding-right:45px;"
+>
+    <span
+      id="togglePassword"
+      style="
+        position:absolute;
+        right:15px;
+        top:50%;
+        transform:translateY(-50%);
+        cursor:pointer;
+        color:white;
+        user-select:none;
+      "
+    >
+      👁
+    </span>
+
+  </div>
+</div>
+
+      <button type="submit">Login</button>
+      <div class="error" id="errorMsg">Invalid login</div>
+      <p style="text-align:center; margin-top:15px; color:white;">
+  Don't have an account?
+  <a href="create account.html"
+     style="color:red; text-decoration:none; font-weight:bold;">
+     Create Account
+  </a>
+</p>
+    </form>
+  </div>
+</div>
+
+<script>
+// loader
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    document.getElementById("loader").style.display = "none";
+    document.querySelector(".container").style.display = "block";
+  }, 2000);
+});
+
+// login
+const form = document.getElementById("loginForm");
+const errorMsg = document.getElementById("errorMsg");
+
+form.addEventListener("submit", async (e) => {
+
+  e.preventDefault();
+
+  const email = document.getElementById("email").value;
+
+  const password = document.getElementById("password").value;
+
+  try {
+
+   console.log("Sending request...");
+    const res = await fetch("http://127.0.0.1:8000/login/", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        email,
+        password
+      })
+    });
+
+    const data = await res.json();
+    console.log("DATA:", data);
+
+    if (data.success) {
+
+      alert("Login successful!");
+
+      errorMsg.style.display = "none";
+
+      // SAVE USER
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
+
+      // SAVE JWT TOKEN
+      localStorage.setItem(
+        "token",
+        data.token
+      );
+
+      console.log("TOKEN:", data.token);
+      window.location.href = "chat.html";
+
+    } else {
+
+      errorMsg.style.display = "block";
+
+      errorMsg.innerText =
+        data.message || "Invalid login";
+    }
+
+  } catch (err) {
+
+    errorMsg.style.display = "block";
+
+    errorMsg.innerText = "Server error";
+  }
+});
+// SHOW / HIDE PASSWORD
+
+const togglePassword =
+  document.getElementById("togglePassword");
+
+const passwordInput =
+  document.getElementById("password");
+
+togglePassword.addEventListener("click", () => {
+
+  if (passwordInput.type === "password") {
+
+    passwordInput.type = "text";
+    togglePassword.innerHTML = "👁<span style='position:relative; left:-14px;'>/</span>";
+  } else {
+
+    passwordInput.type = "password";
+    togglePassword.innerText = "👁";
+  }
+});
+
+  
+  
+
+// particles generator
+const particles = document.getElementById("particles");
+
+for(let i=0;i<40;i++){
+  const span = document.createElement("span");
+  span.style.left = Math.random()*100 + "vw";
+  span.style.animationDuration = (5 + Math.random()*10) + "s";
+  span.style.opacity = Math.random();
+  particles.appendChild(span);
+}
+</script>
+
+</body>
+</html>

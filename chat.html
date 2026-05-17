@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Octopus Chat</title>
+
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif;}
+
+body{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:radial-gradient(circle,#8b0000,#020513);
+  transition:0.3s;
+}
+
+body.dark{
+  background:radial-gradient(circle,#000,#200);
+}
+
+.app{
+  width:95%;
+  max-width:1400px;
+  height:92vh;
+  display:flex;
+  border-radius:25px;
+  overflow:hidden;
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(25px);
+  box-shadow:0 20px 60px rgba(0,0,0,0.7);
+}
+
+.sidebar{
+  width:330px;
+  background:rgba(0,0,0,0.4);
+  display:flex;
+  flex-direction:column;
+  border-right:1px solid rgba(255,255,255,0.1);
+}
+
+.top{
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  color:white;
+}
+
+.search{padding:10px;}
+
+.search input{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:#111;
+  color:white;
+}
+
+.users{flex:1;overflow:auto;}
+
+.user{
+  padding:15px;
+  color:white;
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+}
+
+.user:hover{
+  background:rgba(255,0,0,0.2);
+}
+
+.chat{flex:1;display:flex;flex-direction:column;}
+
+.header{
+  padding:15px;
+  color:white;
+  border-bottom:1px solid #333;
+}
+
+.messages{
+  flex:1;
+  padding:15px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.msg{
+  padding:10px 14px;
+  border-radius:12px;
+  max-width:65%;
+}
+
+.me{background:#7b0000;align-self:flex-end;}
+.other{background:#222;align-self:flex-start;}
+
+.input{
+  display:flex;
+  gap:10px;
+  padding:10px;
+  border-top:1px solid #333;
+}
+
+.input input{
+  flex:1;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#111;
+  color:white;
+}
+
+.btn{
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#8b0000;
+  color:white;
+  cursor:pointer;
+}
+
+.record-btn{
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  border:none;
+  background:#111;
+  position:relative;
+  cursor:pointer;
+}
+
+.record-btn::before{
+  content:"";
+  width:16px;
+  height:16px;
+  background:red;
+  border-radius:50%;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+}
+
+.recording::after{
+  content:"";
+  position:absolute;
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  background:rgba(255,0,0,0.4);
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+  from{transform:scale(1);opacity:0.7;}
+  to{transform:scale(1.6);opacity:0;}
+}
+
+.settings{
+  position:absolute;
+  right:20px;
+  top:20px;
+  background:#111;
+  padding:20px;
+  display:none;
+  border-radius:10px;
+}
+.empty{
+  flex:1;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:white;
+  font-size:22px;
+  opacity:0.7;
+}
+.meta{
+  font-size:11px;
+  opacity:0.6;
+  margin-top:5px;
+  display:flex;
+  justify-content:flex-end;
+  gap:6px;
+}
+.story{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  border:2px solid red;
+  cursor:pointer;
+  overflow:hidden;
+  position:relative; /* 🔥 مهم */
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<div class="sidebar">
+<div class="top">
+<span>Octopus</span>
+<button class="btn" onclick="storyInput.click()">➕ Story</button>
+<input type="file" id="storyInput" hidden>
+<button class="btn" onclick="toggleSettings()">⚙️</button>
+
+</div>
+
+<div class="search">
+<input id="searchInput" placeholder="Search id OR username">
+</div>
+
+<div id="users" class="users"></div>
+</div>
+
+<div class="chat">
+<div id="chatHeader" class="header">Select Chat</div>
+<div id="storiesBar" style="display:flex;gap:10px;padding:10px;overflow:auto;"></div>
+<div id="messages" class="messages"></div>
+
+<div class="input">
+<input id="messageInput" placeholder="Type message...">
+<input type="file" id="fileInput" hidden>
+
+<button class="btn" onclick="pickFile()">📎</button>
+<button id="recordBtn" class="record-btn"></button>
+<button class="btn" onclick="sendSticker()">😀</button>
+<button class="btn" onclick="sendMessage()">➤</button>
+</div>
+
+<div id="settings" class="settings">
+  <div id="profile"  style="display:none">
+
+    <br>
+<label style="color:white">Profile Image</label><br><br>
+
+
+<img id="profilePreview" 
+       src="https://via.placeholder.com/80"
+       
+       onclick="profileImageInput.click()"
+       style="width:80px;height:80px;border-radius:50%;object-fit:cover;display:block;margin-bottom:10px;cursor:pointer">
+<button class="btn" onclick="removeProfileImage()">Remove Image</button>
+<input type="file" id="profileImageInput" accept="image/*"hidden>
+<h3 style="color:white">My Profile</h3>
+<br>
+
+
+<label style="color:white">Name</label>
+<input id="profileName" style="width:100%;padding:10px;background:#222;color:white;border:none;border-radius:8px">
+
+<br><br>
+
+<label style="color:white">Username</label>
+<input id="profileUser" style="width:100%;padding:10px;background:#222;color:white;border:none;border-radius:8px">
+
+<br><br>
+
+<label style="color:white">Password</label>
+<input id="profilePass" type="password" value="123456" disabled style="width:100%;padding:10px;background:#222;color:white;border:none;border-radius:8px">
+
+<br><br>
+
+<button class="btn" onclick="showChangePass()">Change Password</button>
+
+<br><br>
+
+<div id="changePassBox" style="display:none">
+<input id="newPass" placeholder="New Password" style="width:100%;padding:10px;background:#222;color:white;border:none;border-radius:8px">
+<br><br>
+<button class="btn" onclick="changePassword()">Save</button>
+</div>
+<button class="btn" onclick="saveProfile()">Save</button>
+<br><br>
+<button class="btn" onclick="closeProfile()">Back</button>
+</div>
+  
+  
+  <br>
+  
+<h3 style="color:white">Setting</h3>
+ <br>
+<button class="btn" onclick="openProfile()">Profile</button>
+<br><br>
+<button class="btn" onclick="toggleDark()"> Dark Mode</button>
+
+<br><br>
+
+<button class="btn" onclick="logout()">Log out</button>
+<br><br>
+
+</div>
+
+<script>
+
+// ===== FIXED ELEMENTS =====
+const settings = document.getElementById("settings");
+const messageInput = document.getElementById("messageInput");
+const fileInput = document.getElementById("fileInput");
+const searchInput = document.getElementById("searchInput");
+const recordBtn = document.getElementById("recordBtn");
+const profileImageInput = document.getElementById("profileImageInput");
+const profilePreview = document.getElementById("profilePreview");
+
+profileImageInput.onchange = function(){
+  const file = this.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const imgData = e.target.result;
+
+    profilePreview.src = imgData;
+
+    // حفظ الصورة في الأكونت
+    myAccount.image = imgData;
+
+    localStorage.setItem("currentUser", JSON.stringify(myAccount));
+  };
+
+  reader.readAsDataURL(file);
+};
+
+// ===== STATE =====
+let myAccount = JSON.parse(localStorage.getItem("currentUser")) || {};
+
+let chats = JSON.parse(localStorage.getItem("chats")) || {};
+let currentUser = localStorage.getItem("lastChat") || null;
+
+let isRecording = false;
+let recorder;
+let streamRef;
+let chunks = [];
+let stories = JSON.parse(localStorage.getItem("stories")) || [];
+
+
+
+// تحميل صورة البروفايل لو موجودة
+if(myAccount.image){
+  profilePreview.src = myAccount.image;
+}
+
+// ===== USERS =====
+let users=[
+{id:1,name:"Ahmed"},
+{id:2,name:"Ali"},
+{id:3,name:"Omar"}
+];
+
+function renderUsers(list){
+const box=document.getElementById("users");
+box.innerHTML="";
+
+list.forEach(u=>{
+const div=document.createElement("div");
+div.className="user";
+div.innerHTML=`${u.name} <span style="color:lime">●</span>`;
+
+div.onclick=()=>{
+currentUser=u.id;
+localStorage.setItem("lastChat", u.id);
+document.getElementById("chatHeader").innerText=u.name;
+
+if(!chats[u.id]) chats[u.id]=[];
+renderMessages();
+};
+
+box.appendChild(div);
+});
+}
+renderUsers(users);
+
+// ===== SEARCH =====
+searchInput.oninput=e=>{
+const val=e.target.value.toLowerCase();
+renderUsers(users.filter(u=>u.name.toLowerCase().includes(val)||u.id.toString().includes(val)));
+renderMessages();
+};
+
+// ===== MESSAGES =====
+function renderMessages(){
+
+const box=document.getElementById("messages");
+
+// ✅ لو مفيش شات متختار
+if(!currentUser){
+box.innerHTML=`<div class="empty">🐙 Welcome to Octopus</div>`;
+return;
+}
+
+box.innerHTML="";
+
+(chats[currentUser] || []).forEach(m=>{
+const div=document.createElement("div");
+div.className="msg "+(m.me?"me":"other");
+
+let contentHTML = "";
+
+if(m.type === "text"){
+  contentHTML = `<div>${m.content}</div>`;
+}
+else if(m.type === "sticker" || m.type === "image"){
+  contentHTML = `<img src="${m.content}" style="max-width:200px;border-radius:10px;">`;
+}
+else if(m.type === "video"){
+  contentHTML = `<video src="${m.content}" controls style="max-width:200px;"></video>`;
+}
+else if(m.type === "audio"){
+  contentHTML = `<audio src="${m.content}" controls></audio>`;
+}
+else if(m.type === "file"){
+  contentHTML = `
+  <div style="background:#111;padding:10px;border-radius:10px">
+     ${m.name}<br>
+    <a href="${m.content}" download style="color:lime">Download</a>
+  </div>`;
+}
+
+div.innerHTML = `
+${contentHTML}
+<div class="meta">
+<span>${m.time || ""}</span>
+${m.me ? `<span>${m.seen?"✔✔":"✔"}</span>`:""}
+</div>
+`;
+box.appendChild(div);
+});
+
+box.scrollTop=box.scrollHeight;
+}
+
+// ===== SEND =====
+function sendMessage(){
+const text=messageInput.value.trim();
+
+if(!currentUser){
+alert("اختار شات الأول");
+return;
+}
+
+if(!text) return;
+
+if(!chats[currentUser]) chats[currentUser]=[];
+
+// ⏰ الوقت
+const now = new Date();
+const time = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+chats[currentUser].push({
+type:"text",
+content:text,
+me:true,
+time: time,
+seen: false // ✔ لسه متشافش
+});
+localStorage.setItem("chats", JSON.stringify(chats));
+
+renderMessages();
+messageInput.value="";
+messageInput.focus();
+
+// 🔥 محاكاة إن الطرف التاني شاف الرسالة بعد 2 ثانية
+setTimeout(()=>{
+const lastMsg = chats[currentUser][chats[currentUser].length - 1];
+if(lastMsg && lastMsg.me){
+lastMsg.seen = true;
+
+localStorage.setItem("chats", JSON.stringify(chats)); // 🔥 هنا
+
+renderMessages();
+}
+},2000);
+}
+// ENTER
+messageInput.addEventListener("keypress",e=>{
+if(e.key==="Enter") sendMessage();
+});
+
+// ===== FILE =====
+function pickFile(){
+if(!currentUser) return alert("Select chat first");
+fileInput.click();
+}
+
+fileInput.onchange=e=>{
+const file=e.target.files[0];
+if(!file||!currentUser) return;
+
+const url=URL.createObjectURL(file);
+
+let type="file";
+if(file.type.startsWith("image/")) type="image";
+else if(file.type.startsWith("video/")) type="video";
+
+chats[currentUser].push({type,content:url,name:file.name,me:true});
+localStorage.setItem("chats", JSON.stringify(chats));
+renderMessages();
+};
+
+// ===== RECORD =====
+recordBtn.onclick=async function(){
+
+if(!currentUser) return alert("Select chat first");
+
+if(location.protocol!=="https:" && location.hostname!=="localhost"){
+alert("الميكروفون محتاج HTTPS");
+return;
+}
+
+try{
+
+if(!isRecording){
+
+streamRef=await navigator.mediaDevices.getUserMedia({audio:true});
+recorder=new MediaRecorder(streamRef);
+chunks=[];
+
+recorder.ondataavailable=e=>{
+if(e.data.size>0) chunks.push(e.data);
+};
+
+recorder.onstop=()=>{
+const blob=new Blob(chunks,{type:"audio/webm"});
+const url=URL.createObjectURL(blob);
+
+chats[currentUser].push({type:"audio",content:url,me:true});
+localStorage.setItem("chats", JSON.stringify(chats));
+renderMessages();
+
+streamRef.getTracks().forEach(t=>t.stop());
+};
+
+recorder.start();
+isRecording=true;
+this.classList.add("recording");
+
+}else{
+
+recorder.stop();
+isRecording=false;
+this.classList.remove("recording");
+
+}
+
+}catch(e){
+alert("Mic error ⚠️");
+console.error(e);
+}
+};
+
+// ===== STICKER =====
+function sendSticker(){
+if(!currentUser) return;
+
+const stickers=[
+"https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif",
+"https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif"
+];
+
+const random=stickers[Math.floor(Math.random()*stickers.length)];
+
+chats[currentUser].push({type:"sticker",content:random,me:true});
+localStorage.setItem("chats", JSON.stringify(chats));
+renderMessages();
+}
+
+// ===== SETTINGS =====
+function toggleSettings(){
+settings.style.display=settings.style.display==="block"?"none":"block";
+}
+
+function toggleDark(){
+const d=document.body.classList.toggle("dark");
+localStorage.setItem("darkMode",d);
+}
+
+if(localStorage.getItem("darkMode")==="true"){
+document.body.classList.add("dark");
+}
+
+function logout(){
+localStorage.clear();
+ window.location.href = "index.html";
+}
+function openProfile(){
+  document.querySelector("#settings > h3").style.display = "none";
+
+  document.querySelectorAll("#settings > button").forEach(b=>{
+    b.style.display = "none";
+  });
+
+  document.getElementById("profile").style.display = "block";
+
+  profileName.value = myAccount.name;
+  profileUser.value = myAccount.username;
+  profilePass.value = myAccount.password;
+
+  // 🔥 عرض الصورة
+  if(myAccount.image){
+    profilePreview.src = myAccount.image;
+  }else{
+    profilePreview.src = "https://via.placeholder.com/80";
+  }
+}
+
+function closeProfile(){
+  document.querySelector("#settings > h3").style.display = "block";
+
+  document.querySelectorAll("#settings > button").forEach(b=>{
+    b.style.display = "block";
+  });
+
+  document.getElementById("profile").style.display = "none";
+}
+function removeProfileImage(){
+  if(!myAccount) return;
+
+  // مسح الصورة من الأكونت
+  delete myAccount.image;
+
+  // تحديث التخزين
+  localStorage.setItem("currentUser", JSON.stringify(myAccount));
+
+  // رجع الصورة الافتراضية
+  profilePreview.src = "https://via.placeholder.com/80";
+}
+
+
+function showChangePass(){
+document.getElementById("changePassBox").style.display="block";
+}
+
+function changePassword(){
+  const newPass = document.getElementById("newPass").value;
+
+  if(newPass.length < 4){
+    alert("Password too short");
+    return;
+  }
+
+  myAccount.password = newPass;
+
+  localStorage.setItem("currentUser", JSON.stringify(myAccount));
+
+  document.getElementById("profilePass").value = newPass;
+
+  alert("Password changed ✅");
+
+  document.getElementById("newPass").value="";
+  document.getElementById("changePassBox").style.display="none";
+}
+function saveProfile(){
+  if(!myAccount){
+    alert("مفيش اكونت!");
+    return;
+  }
+
+  myAccount.name = document.getElementById("profileName").value;
+  myAccount.username = document.getElementById("profileUser").value;
+
+  localStorage.setItem("currentUser", JSON.stringify(myAccount));
+
+  alert("Profile updated ✅");
+
+  closeProfile(); // 🔥 يقفل ويرجعك
+}
+document.addEventListener("click", function(e){
+  const settings = document.getElementById("settings");
+
+  if(!settings.contains(e.target) && !e.target.closest(".btn")){
+    settings.style.display = "none";
+  }
+});
+function renderStories(){
+const now = Date.now();
+
+  // 🔥 فلترة الاستوري (24 ساعة)
+  stories = stories.filter(s => now - s.time < 24 * 60 * 60 * 1000);
+
+  // تحديث التخزين بعد الحذف
+  localStorage.setItem("stories", JSON.stringify(stories));
+  const bar = document.getElementById("storiesBar");
+  bar.innerHTML = "";
+
+  stories.forEach((s,i)=>{
+    const div = document.createElement("div");
+    div.className = "story";
+
+    let content = "";
+
+    // 🔥 تحديد نوع الاستوري
+    if(s.type && s.type.startsWith("video")){
+      content = `<video src="${s.content}" style="width:100%;height:100%;object-fit:cover;"></video>`;
+    } else {
+      content = `<img src="${s.content}">`;
+    }
+
+    div.innerHTML = `
+      ${content}
+      <span onclick="event.stopPropagation(); deleteStory(${i})"
+        style="
+          position:absolute;
+          top:2px;
+          right:5px;
+          color:white;
+          font-size:14px;
+          cursor:pointer;
+        ">❌</span>
+    `;
+
+    div.onclick = ()=>{
+      // 🔥 فتح الاستوري
+      if(s.type && s.type.startsWith("video")){
+        window.open(s.content);
+      } else {
+        window.open(s.content);
+      }
+    };
+
+    bar.appendChild(div);
+  });
+}
+function addStory(file){
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    stories.push({
+      content: e.target.result,
+      type: file.type, // 🔥 مهم
+      time: Date.now()
+    });
+
+    localStorage.setItem("stories", JSON.stringify(stories));
+    renderStories();
+  };
+
+  reader.readAsDataURL(file);
+}
+document.getElementById("storyInput").onchange = function(e){
+  const file = e.target.files[0];
+  if(file) addStory(file);
+};
+renderStories();
+
+function deleteStory(index){
+
+  const ok = confirm("هل انت متأكد انك عايز تمسح الاستوري؟");
+
+  if(!ok) return; // لو ضغط Cancel يخرج
+
+  stories.splice(index,1);
+
+  localStorage.setItem("stories", JSON.stringify(stories));
+
+  renderStories();
+}
+// حذف الاستوري القديمة كل دقيقة
+setInterval(() => {
+  const now = Date.now();
+
+  let updated = stories.filter(s => now - s.time < 24 * 60 * 60 * 1000);
+
+  if(updated.length !== stories.length){
+    stories = updated;
+    localStorage.setItem("stories", JSON.stringify(stories));
+    renderStories();
+  }
+
+}, 60000);
+
+</script>
+
+</body>
+</html>
